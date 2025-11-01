@@ -2,10 +2,15 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"order-service/internal/model"
+	"order-service/internal/redis"
 	"order-service/internal/repository"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -18,12 +23,14 @@ type OrderService interface {
 type orderService struct {
 	repo          repository.OrderRepository
 	productClient ProductServiceClient
+	redisClient   *redis.Client
 }
 
-func NewOrderService(repo repository.OrderRepository, productClient ProductServiceClient) OrderService {
+func NewOrderService(repo repository.OrderRepository, productClient ProductServiceClient, redisClient *redis.Client) OrderService {
 	return &orderService{
 		repo:          repo,
 		productClient: productClient,
+		redisClient:   redisClient,
 	}
 }
 
@@ -51,5 +58,27 @@ func (s *orderService) CreateOrder(req *model.CreateOrderRequest) (*model.Order,
 }
 
 func (s *orderService) GetOrdersByProductID(productID string) ([]model.Order, error) {
-	return s.repo.GetByProductID(productID)
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("orders:product:%s", productID)
+
+	cachedData, err := s.redisClient.Get(ctx, cacheKey)
+	if err == nil {
+		log.Printf("Cache HIT for product %s", productID)
+		var orders []model.Order
+		if err := json.Unmarshal([]byte(cachedData), &orders); err == nil {
+			return orders, nil
+		}
+	}
+	log.Printf("Cache MISS for product %s. Fetching from DB.", productID)
+	orders, err := s.repo.GetByProductID(productID)
+	if err != nil {
+		return nil, err
+	}
+
+	if orders != nil {
+		data, _ := json.Marshal(orders)
+		s.redisClient.Set(ctx, cacheKey, data, 10*time.Minute)
+	}
+
+	return orders, nil
 }

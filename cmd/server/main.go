@@ -6,6 +6,7 @@ import (
 	"order-service/config"
 	"order-service/internal/database"
 	"order-service/internal/handler"
+	"order-service/internal/redis"
 	"order-service/internal/repository"
 	"order-service/internal/service"
 	"os"
@@ -23,11 +24,15 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	redisAddr := cfg.RedisHost + ":" + cfg.RedisPort
+	redisClient := redis.NewClient(redisAddr)
+	log.Println(redisAddr)
 	orderRepo := repository.NewOrderRepository(db)
 
 	productServiceURL := cfg.ProductServiceURL
 	productClient := service.NewProductServiceClient(productServiceURL)
-	orderService := service.NewOrderService(orderRepo, productClient)
+	orderService := service.NewOrderService(orderRepo, productClient, redisClient)
+
 	orderHandler := handler.NewOrderHandler(orderService)
 
 	router := gin.Default()

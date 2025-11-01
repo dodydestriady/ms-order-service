@@ -6,11 +6,18 @@ services:
       context: .
       target: development
     ports:
-      - "${APP_PORT}:8000"
-    env_file:
-      - .env
+      - "8000:8000"
     environment:
-      - DB_HOST=postgres
+      APP_PORT: 8000
+      PRODUCT_SERVICE_URL: http://product-service-app:3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: order_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
       - postgres
       - redis
@@ -20,57 +27,64 @@ services:
       - ./.air.toml:/app/.air.toml
     networks:
       - default
-      - shared-net
+      # - shared-net
 
   migrator:
     image: migrate/migrate
     volumes:
       - ./migrations:/migrations
-    env_file:
-      - .env
     command: [
       "-path", "/migrations",
-      "-database", "postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable",
+      "-database", "postgres://postgres:password@postgres:5432/order_db?sslmode=disable",
       "up"
     ]
     depends_on:
       postgres:
         condition: service_healthy
     restart: no
+    networks:
+      - default
+      # - shared-net
 
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: order_db
     volumes:
       - order_postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d order_db"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - default
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    networks:
+      - default
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - default
 
 volumes:
   order_postgres_data:
 
-networks:
-  shared-net:
-    external: true
+# networks:
+#   shared-net:
+#     external: true
