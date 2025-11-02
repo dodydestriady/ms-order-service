@@ -50,13 +50,15 @@ This will start:
 ### Example Requests
 Create Order
 ```
-curl -X POST http://localhost:8000/orders \  
+curl -X POST http://localhost:8000/orders \
 -H "Content-Type: application/json" \
--d '{"product_id": "1", "quantity": 100}'
+-d '{"productId": "uuid", "quantity": 100}'
 ```
 
 Show Order by Product
 ```
+curl -X GET http://localhost:8000/orders/product/:uuid \
+-H "Content-Type: application/json"
 ```
 ## Architecture
 
