@@ -103,7 +103,7 @@ func TestOrderService_CreateOrder_Success(t *testing.T) {
 		order := args.Get(0).(*model.Order)
 		order.ID = "order-456"
 	})
-	mockPublisher.On("Publish", "", "order.created", mock.AnythingOfType("[]uint8")).Return(nil)
+	mockPublisher.On("Publish", "amq.topic", "order.created", mock.AnythingOfType("[]uint8")).Return(nil)
 
 	service := &orderService{
 		repo:          mockRepo,
