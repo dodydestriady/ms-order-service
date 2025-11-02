@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"order-service/config"
+	"order-service/internal/consumers"
 	"order-service/internal/database"
 	"order-service/internal/handler"
 	"order-service/internal/rabbitmq"
@@ -15,7 +16,6 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
-	"github.com/streadway/amqp"
 )
 
 func main() {
@@ -53,15 +53,8 @@ func main() {
 	router.GET("/orders/product/:productId", orderHandler.GetOrdersByProductID)
 
 	// RUNS rabbitmq
-	go func() {
-		log.Println("Starting RabbitMQ consumer...")
-		eventHandler := func(d amqp.Delivery) {
-			log.Printf("Successfully processed event from queue: %s", string(d.Body))
-		}
-		if err := rabbitmq.Consume(rabbitmqURL, "order_queue", eventHandler); err != nil {
-			log.Fatalf("Failed to start RabbitMQ consumer: %v", err)
-		}
-	}()
+	go consumers.StartOrderLoggerConsumer(rabbitmqURL)
+	go consumers.StartProductEventListener(rabbitmqURL)
 
 	port := cfg.AppPort
 	go func() {
