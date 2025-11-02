@@ -59,7 +59,7 @@ func (s *orderService) CreateOrder(req *model.CreateOrderRequest) (*model.Order,
 
 	// --- PUBLISH EVENT ---
 	orderJSON, _ := json.Marshal(newOrder)
-	err = s.publisher.Publish("", "order.created", orderJSON) // Publish ke default exchange
+	err = s.publisher.Publish("amq.topic", "order.created", orderJSON)
 	if err != nil {
 		log.Printf("Failed to publish order.created event: %v", err)
 	} else {

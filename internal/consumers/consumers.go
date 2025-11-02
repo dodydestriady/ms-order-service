@@ -14,7 +14,7 @@ func StartOrderLoggerConsumer(rabbitmqURL string) {
 		log.Printf("Successfully processed event from queue: %s", string(d.Body))
 	}
 
-	if err := rabbitmq.Consume(rabbitmqURL, "order_queue", eventHandler); err != nil {
+	if err := rabbitmq.SetupConsumer(rabbitmqURL, "amq.topic", "order.created", "order_queue", eventHandler); err != nil {
 		log.Fatalf("Failed to start RabbitMQ consumer for logging: %v", err)
 	}
 }
@@ -26,7 +26,7 @@ func StartProductEventListener(rabbitmqURL string) {
 		log.Printf("Received a product event: %s", string(d.Body))
 	}
 
-	if err := rabbitmq.Consume(rabbitmqURL, "product_queue", productEventHandler); err != nil {
+	if err := rabbitmq.SetupConsumer(rabbitmqURL, "amq.topic", "product.created", "product_queue", productEventHandler); err != nil {
 		log.Fatalf("Failed to start product event consumer: %v", err)
 	}
 }

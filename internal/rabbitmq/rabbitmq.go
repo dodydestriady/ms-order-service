@@ -99,3 +99,66 @@ func Consume(url, queueName string, handler func(d amqp.Delivery)) error {
 	<-forever
 	return nil
 }
+
+func SetupConsumer(url, exchangeName, routingKey, queueName string, handler func(d amqp.Delivery)) error {
+	conn, err := amqp.Dial(url)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		queueName,
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.QueueBind(
+		q.Name,
+		routingKey,
+		exchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	msgs, err := ch.Consume(
+		q.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Consumer successfully bound to exchange '%s' with routing key '%s' on queue '%s'", exchangeName, routingKey, queueName)
+	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+
+	forever := make(chan bool)
+	go func() {
+		for d := range msgs {
+			handler(d)
+		}
+	}()
+
+	<-forever
+	return nil
+}
