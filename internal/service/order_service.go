@@ -24,11 +24,11 @@ type OrderService interface {
 type orderService struct {
 	repo          repository.OrderRepository
 	productClient ProductServiceClient
-	redisClient   *redis.Client
-	publisher     *rabbitmq.Publisher
+	redisClient   redis.ClientInterface
+	publisher     rabbitmq.PublisherInterface
 }
 
-func NewOrderService(repo repository.OrderRepository, productClient ProductServiceClient, redisClient *redis.Client, publisher *rabbitmq.Publisher) OrderService {
+func NewOrderService(repo repository.OrderRepository, productClient ProductServiceClient, redisClient redis.ClientInterface, publisher rabbitmq.PublisherInterface) OrderService {
 	return &orderService{
 		repo:          repo,
 		productClient: productClient,

@@ -6,6 +6,11 @@ import (
 	"github.com/streadway/amqp"
 )
 
+type PublisherInterface interface {
+	Publish(exchange, routingKey string, body []byte) error
+	Close()
+}
+
 type Publisher struct {
 	conn *amqp.Connection
 	ch   *amqp.Channel

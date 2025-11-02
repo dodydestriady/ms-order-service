@@ -1,4 +1,7 @@
 /.env
 /note
 /tmp
-/tmp/*
+/tmp/
+.vscode
+main
+tmp/
