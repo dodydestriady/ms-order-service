@@ -44,7 +44,7 @@ services:
     restart: no
     networks:
       - default
-      # - shared-net
+      - shared-net
 
   postgres:
     image: postgres:15-alpine
@@ -54,8 +54,8 @@ services:
       POSTGRES_DB: order_db
     volumes:
       - order_postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # ports:
+    #   - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d order_db"]
       interval: 5s
@@ -66,8 +66,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
     networks:
       - default
 

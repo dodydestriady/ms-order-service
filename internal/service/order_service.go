@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"order-service/internal/model"
+	"order-service/internal/rabbitmq"
 	"order-service/internal/redis"
 	"order-service/internal/repository"
 	"time"
@@ -24,13 +25,15 @@ type orderService struct {
 	repo          repository.OrderRepository
 	productClient ProductServiceClient
 	redisClient   *redis.Client
+	publisher     *rabbitmq.Publisher
 }
 
-func NewOrderService(repo repository.OrderRepository, productClient ProductServiceClient, redisClient *redis.Client) OrderService {
+func NewOrderService(repo repository.OrderRepository, productClient ProductServiceClient, redisClient *redis.Client, publisher *rabbitmq.Publisher) OrderService {
 	return &orderService{
 		repo:          repo,
 		productClient: productClient,
 		redisClient:   redisClient,
+		publisher:     publisher,
 	}
 }
 
@@ -52,6 +55,15 @@ func (s *orderService) CreateOrder(req *model.CreateOrderRequest) (*model.Order,
 	err = s.repo.Create(newOrder)
 	if err != nil {
 		return nil, err
+	}
+
+	// --- PUBLISH EVENT ---
+	orderJSON, _ := json.Marshal(newOrder)
+	err = s.publisher.Publish("", "order.created", orderJSON) // Publish ke default exchange
+	if err != nil {
+		log.Printf("Failed to publish order.created event: %v", err)
+	} else {
+		log.Printf("Event 'order.created' published for order ID: %s", newOrder.ID)
 	}
 
 	return newOrder, nil

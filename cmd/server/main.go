@@ -6,6 +6,7 @@ import (
 	"order-service/config"
 	"order-service/internal/database"
 	"order-service/internal/handler"
+	"order-service/internal/rabbitmq"
 	"order-service/internal/redis"
 	"order-service/internal/repository"
 	"order-service/internal/service"
@@ -14,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	"github.com/streadway/amqp"
 )
 
 func main() {
@@ -26,12 +28,19 @@ func main() {
 
 	redisAddr := cfg.RedisHost + ":" + cfg.RedisPort
 	redisClient := redis.NewClient(redisAddr)
-	log.Println(redisAddr)
+
+	rabbitmqURL := cfg.RabbitMQURL
+	publisher, err := rabbitmq.NewPublisher(rabbitmqURL)
+	if err != nil {
+		log.Fatalf("Failed to initialize RabbitMQ publisher: %v", err)
+	}
+	defer publisher.Close()
+
 	orderRepo := repository.NewOrderRepository(db)
 
 	productServiceURL := cfg.ProductServiceURL
 	productClient := service.NewProductServiceClient(productServiceURL)
-	orderService := service.NewOrderService(orderRepo, productClient, redisClient)
+	orderService := service.NewOrderService(orderRepo, productClient, redisClient, publisher)
 
 	orderHandler := handler.NewOrderHandler(orderService)
 
@@ -42,6 +51,17 @@ func main() {
 
 	router.POST("/orders", orderHandler.CreateOrder)
 	router.GET("/orders/product/:productId", orderHandler.GetOrdersByProductID)
+
+	// RUNS rabbitmq
+	go func() {
+		log.Println("Starting RabbitMQ consumer...")
+		eventHandler := func(d amqp.Delivery) {
+			log.Printf("Successfully processed event from queue: %s", string(d.Body))
+		}
+		if err := rabbitmq.Consume(rabbitmqURL, "order_queue", eventHandler); err != nil {
+			log.Fatalf("Failed to start RabbitMQ consumer: %v", err)
+		}
+	}()
 
 	port := cfg.AppPort
 	go func() {
