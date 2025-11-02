@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -18,6 +19,7 @@ type Config struct {
 	RedisPort         string
 	RabbitMQURL       string
 	ProductServiceURL string
+	MockProduct       bool
 }
 
 func InitConfig() *Config {
@@ -25,6 +27,9 @@ func InitConfig() *Config {
 	if err != nil {
 		log.Println("Warning: .env file not found")
 	}
+
+	mockProductStr := os.Getenv("MOCK_PRODUCT_SERVICE")
+	mockProduct, _ := strconv.ParseBool(mockProductStr)
 
 	config := &Config{
 		AppPort:           os.Getenv("APP_PORT"),
@@ -37,6 +42,7 @@ func InitConfig() *Config {
 		RedisPort:         os.Getenv("REDIS_PORT"),
 		RabbitMQURL:       os.Getenv("RABBITMQ_URL"),
 		ProductServiceURL: os.Getenv("PRODUCT_SERVICE_URL"),
+		MockProduct:       mockProduct,
 	}
 
 	return config

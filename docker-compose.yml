@@ -10,6 +10,7 @@ services:
     environment:
       APP_PORT: 8000
       PRODUCT_SERVICE_URL: http://product-service-app:3000
+      MOCK_PRODUCT_SERVICE: true
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: postgres

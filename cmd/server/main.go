@@ -39,7 +39,7 @@ func main() {
 	orderRepo := repository.NewOrderRepository(db)
 
 	productServiceURL := cfg.ProductServiceURL
-	productClient := service.NewProductServiceClient(productServiceURL)
+	productClient := service.NewProductServiceClient(productServiceURL, cfg)
 	orderService := service.NewOrderService(orderRepo, productClient, redisClient, publisher)
 
 	orderHandler := handler.NewOrderHandler(orderService)

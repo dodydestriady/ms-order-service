@@ -1,0 +1,7 @@
+{
+  "id": "mock-product-123",
+  "name": "Mock Gaming Laptop",
+  "price": 15000000,
+  "qty": 500,
+  "createdAt": "2023-10-27T10:00:00.000Z"
+}

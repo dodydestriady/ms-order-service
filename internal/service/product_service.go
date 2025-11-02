@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"order-service/config"
 	"order-service/internal/model"
+	"os"
 )
 
 type ProductServiceClient interface {
@@ -13,18 +15,36 @@ type ProductServiceClient interface {
 }
 
 type productServiceClient struct {
-	baseURL string
-	client  *http.Client
+	baseURL     string
+	client      *http.Client
+	mockProduct bool
 }
 
-func NewProductServiceClient(baseURL string) ProductServiceClient {
+func NewProductServiceClient(baseURL string, cfg *config.Config) ProductServiceClient {
 	return &productServiceClient{
-		baseURL: baseURL,
-		client:  &http.Client{},
+		baseURL:     baseURL,
+		client:      &http.Client{},
+		mockProduct: cfg.MockProduct,
 	}
 }
 
 func (c *productServiceClient) GetProductByID(productID string) (*model.Product, error) {
+	if c.mockProduct {
+		fmt.Println("Using mock product data from JSON file!")
+
+		mockData, err := os.ReadFile("product-response.json")
+		if err != nil {
+			return nil, fmt.Errorf("failed to read mock product file: %w", err)
+		}
+
+		var mockProduct model.Product
+		if err := json.Unmarshal(mockData, &mockProduct); err != nil {
+			return nil, fmt.Errorf("failed to parse mock product JSON: %w", err)
+		}
+
+		return &mockProduct, nil
+	}
+
 	url := fmt.Sprintf("%s/products/%s", c.baseURL, productID)
 
 	resp, err := c.client.Get(url)
